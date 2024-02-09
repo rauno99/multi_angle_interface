@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!-- created with Phobos 1.0.1 "Capricious Choutengan" -->
+  <robot name="lexus">
+
+    <link name="base_link">
+    </link>
+
+    <link name="lexus_model">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.001"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+      <visual name="Body">
+        <origin xyz="0 0.0 0.0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://rviz_textured_sphere/config/lexus_meshes/dae/Exterior.dae" scale="1.0 1.02346 1.041"/>
+        </geometry>
+        <material name="Lexus2016RXInterior"/>
+      </visual>
+    </link>
+
+    <joint name="link_BaseLink" type="fixed">
+      <origin xyz="-0.05 0 -0.60" rpy="0 0 1.5708"/>
+      <parent link="base_link"/>
+      <child link="lexus_model"/>
+    </joint>
+
+    <material name="Lexus2016RXInterior">
+      <color rgba="0.027 0.027 0.027 1.0"/>
+    </material>
+
+  </robot>

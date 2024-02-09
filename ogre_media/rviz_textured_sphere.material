@@ -1,0 +1,27 @@
+material rviz_textured_sphere_material
+{
+	technique
+	{
+		pass
+		{
+			//Set texture unit state for front camera
+			texture_unit tex_unit_front
+			{
+				tex_coord_set 0
+				tex_address_mode border
+				tex_border_colour 0.0 0.0 0.0 0.0
+				colour_op replace
+			}
+
+			//Set texture unit state for rear camera
+			texture_unit tex_unit_rear
+			{
+				tex_coord_set 1
+				tex_address_mode border
+				tex_border_colour 0.0 0.0 0 0.0
+				colour_op_ex blend_diffuse_alpha src_texture src_current
+			}
+
+		}
+	}
+}
