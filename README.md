@@ -1,0 +1,1 @@
+# rviz_textured_sphere
