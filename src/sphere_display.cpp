@@ -181,7 +181,7 @@ void SphereDisplay::createSphere()
 {
   Ogre::String node_name(ROS_PACKAGE_NAME "_node");
   Ogre::String material_name(ROS_PACKAGE_NAME "_material");
-
+  // Ogre::String mesh_file_name = "path/to/your/meshfile.mesh";
   // check if node already exists.
   if (scene_manager_->hasSceneNode(node_name))
   {
@@ -213,13 +213,14 @@ void SphereDisplay::createSphere()
 }
 
 Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, const double r,
-                                              const unsigned int ring_cnt,
+                                              const unsigned int total_ring_cnt,
                                               const unsigned int segment_cnt)
 {
   Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().createManual(mesh_name, ROS_PACKAGE_NAME);
   Ogre::SubMesh* sub_mesh = mesh->createSubMesh();
   mesh->sharedVertexData = new Ogre::VertexData();
   Ogre::VertexData* vertex_data = mesh->sharedVertexData;
+  unsigned int ring_cnt = total_ring_cnt / 2;
 
   // Define vertex format
   Ogre::VertexDeclaration* vertex_decl = vertex_data->vertexDeclaration;
@@ -254,39 +255,61 @@ Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, cons
   unsigned short* indices =
       static_cast<unsigned short*>(i_buf->lock(Ogre::HardwareBuffer::HBL_DISCARD));
 
-  float delta_ring_angle = M_PI / ring_cnt;
+  float delta_ring_angle = (M_PI / 2) / ring_cnt;
   float delta_segment_angle = 2 * M_PI / segment_cnt;
   float front_lens_fov = angles::from_degrees(fov_front_property_->getFloat());
   float rear_lens_fov = angles::from_degrees(fov_rear_property_->getFloat());
   float blend_angle = angles::from_degrees(blend_angle_property_->getFloat());
   unsigned short vertex_index = 0;
 
+  bool flatten_bottom = true;
+  float flatten_distance = 0.2;
+  float flatten_z = r * (1.0 - flatten_distance);
+
   // For over the rings of the sphere
   for (uint32_t ring = 0; ring <= ring_cnt; ring++)
   {
     float r0 = r * sinf(ring * delta_ring_angle);
-    float y0 = r * cosf(ring * delta_ring_angle);
+    float z0 = r * cosf(ring * delta_ring_angle);
+    if (flatten_bottom && z0 > flatten_z) {
+        z0 = flatten_z;
+      }
 
     // For over the segments of the sphere
     for (uint32_t seg = 0; seg <= segment_cnt; seg++)
     {
-      float x0 = r0 * sinf(seg * delta_segment_angle);
-      float z0 = r0 * cosf(seg * delta_segment_angle);
+      float y0 = r0 * sinf(seg * delta_segment_angle);
+      float x0 = r0 * cosf(seg * delta_segment_angle);
 
       // Calculate uv coordinates
       float v_angle = ring * delta_ring_angle;
       float u_angle = seg * delta_segment_angle;
-      float uv_r0 = (float)ring / (float)ring_cnt * 2;
+      float uv_r0 = (float)ring / ((float)ring_cnt / 2);
+
 
       // Scale and scroll textures so that their centers will align
-      // with the top and bottom centers of the sphere
-      float scale_front = M_PI / front_lens_fov;
-      float v_front = uv_r0 * cos(u_angle) * 0.5 * scale_front + 0.5;
-      float u_front = -uv_r0 * sin(u_angle) * 0.5 * scale_front + 0.5;
+      // // with the top and bottom centers of the sphere
+      // float scale_front = M_PI / front_lens_fov;
+      // float v_front = uv_r0 * cos(u_angle) * 0.5 * scale_front + 0.5;
+      // float u_front = -uv_r0 * sin(u_angle) * 0.5 * scale_front + 0.5;
 
-      float scale_rear = M_PI / rear_lens_fov;
-      float v_rear = (2 - uv_r0) * cos(u_angle) * 0.5 * scale_rear + 0.5;
-      float u_rear = (2 - uv_r0) * sin(u_angle) * 0.5 * scale_rear + 0.5;
+      // float scale_rear = M_PI / rear_lens_fov;
+      // float v_rear = (2 - uv_r0) * cos(u_angle) * 0.5 * scale_rear + 0.5;
+      // float u_rear = (2 - uv_r0) * sin(u_angle) * 0.5 * scale_rear + 0.5;
+
+      // Calculate normalized angles for semicircular mapping on a 2D plane
+        float theta = (float)seg / segment_cnt * M_PI; // Horizontal angle [0, PI]
+        float phi = (float)ring / ring_cnt * M_PI_2; // Vertical angle [0, PI/2] from top to bottom
+
+        // Calculate normalized UV coordinates for front texture
+        float u_front = theta / M_PI_2; // Normalize u to [0, 1] for semicircular mapping
+        float v_front = 1.0f - (phi / M_PI_2); // Normalize v to [0, 1] from top to bottom
+
+        // Assuming the rear texture is to be mapped similarly but could be adjusted differently
+        // For instance, you might want to mirror the rear texture, or offset it
+        float u_rear = 1.0f - u_front; // Example: Mirroring the u coordinate for the rear texture
+        float v_rear = v_front; // Keeping v the same for both textures, can be adjusted if needed
+
 
       // Use diffuse color to alpha blend front and back images at the predefined blending region
       float blend_alpha = (v_angle - M_PI_2 + blend_angle / 2) / blend_angle;
