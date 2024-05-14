@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rviz_textured_sphere)
+project(multi_angle_interface)
 
 ## Find catkin and any catkin packages on which
 ## this package depends at build time
@@ -32,19 +32,21 @@ include_directories(
 
 if(rviz_QT_VERSION VERSION_LESS "5")
 qt4_wrap_cpp(MOC_FILES
-  include/rviz_textured_sphere/sphere_display.h
+  include/multi_angle_interface/sphere_display.h
+  include/multi_angle_interface/my_panel.h
   )
 else()
 qt5_wrap_cpp(MOC_FILES
-  include/rviz_textured_sphere/sphere_display.h
+  include/multi_angle_interface/sphere_display.h
+  include/multi_angle_interface/my_panel.h
   )
 endif()
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-set(TEXTURED_SPHERE_LIB rviz_textured_sphere)
+set(TEXTURED_SPHERE_LIB multi_angle_interface)
 
-add_library(${TEXTURED_SPHERE_LIB} src/sphere_display.cpp ${MOC_FILES})
+add_library(${TEXTURED_SPHERE_LIB} src/sphere_display.cpp src/my_panel.cpp ${MOC_FILES})
 target_link_libraries(${TEXTURED_SPHERE_LIB} ${catkin_LIBRARIES} ${QT_LIBRARIES} )
 
 add_dependencies(${TEXTURED_SPHERE_LIB} ${catkin_EXPORTED_TARGETS})

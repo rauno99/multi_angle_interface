@@ -1,9 +1,17 @@
 <library path="lib/librviz_textured_sphere">
-  <class name="rviz_textured_sphere/SphereDisplay"
+  <class name="multi_angle_interface/SphereDisplay"
          type="rviz::SphereDisplay"
          base_class_type="rviz::Display">
     <description>
       This display plugin creates a sphere with dynamic texture.
+    </description>
+  </class>
+    <class path="lib/librviz_textured_sphere"
+          name="multi_angle_interface/ViewPanel"
+          type="rviz::ViewPanel"
+          base_class_type="rviz::Panel">
+    <description>
+      This is a custom RViz panel for controlling the camera view.
     </description>
   </class>
 </library>

@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <package>
-  <name>rviz_textured_sphere</name>
+  <name>multi_angle_interface</name>
   <version>0.1.0</version>
   <description>RVIZ Sphere Display Plugin</description>
-  <maintainer email="veix123@gmail.com">Veiko Vunder</maintainer>
+  <maintainer email="rauno.polluaar@gmail.com">Rauno Põlluäär</maintainer>
   <license>BSD</license>
-  <author email="veix123@gmail.com">Veiko Vunder</author>
+  <author email="veix123@gmail.com">Rauno Põlluäär</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 

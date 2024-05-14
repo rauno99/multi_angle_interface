@@ -1,33 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-//      Title     : sphere_display.cpp
-//      Project   : rviz_textured_sphere
-//      Created   : 7/13/2017
-//      Author    : Veiko Vunder
-//      Platforms : Ubuntu 64-bit
-//      Copyright : Copyright© The University of Texas at Austin, 2017-2018. All rights reserved.
-//
-//          All files within this directory are subject to the following, unless an alternative
-//          license is explicitly included within the text of each file.
-//
-//          This software and documentation constitute an unpublished work
-//          and contain valuable trade secrets and proprietary information
-//          belonging to the University. None of the foregoing material may be
-//          copied or duplicated or disclosed without the express, written
-//          permission of the University. THE UNIVERSITY EXPRESSLY DISCLAIMS ANY
-//          AND ALL WARRANTIES CONCERNING THIS SOFTWARE AND DOCUMENTATION,
-//          INCLUDING ANY WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-//          PARTICULAR PURPOSE, AND WARRANTIES OF PERFORMANCE, AND ANY WARRANTY
-//          THAT MIGHT OTHERWISE ARISE FROM COURSE OF DEALING OR USAGE OF TRADE.
-//          NO WARRANTY IS EITHER EXPRESS OR IMPLIED WITH RESPECT TO THE USE OF
-//          THE SOFTWARE OR DOCUMENTATION. Under no circumstances shall the
-//          University be liable for incidental, special, indirect, direct or
-//          consequential damages or loss of profits, interruption of business,
-//          or related expenses which may arise from use of software or documentation,
-//          including but not limited to those resulting from defects in software
-//          and/or documentation, or loss or inaccuracy of data of any kind.
-//
-///////////////////////////////////////////////////////////////////////////////
-
 #include <OGRE/OgreArchive.h>
 #include <OGRE/OgreMaterialManager.h>
 #include <OGRE/OgreMeshManager.h>
@@ -38,7 +8,7 @@
 #include <OGRE/OgreAxisAlignedBox.h>
 #include <OGRE/OgreVector3.h>
 
-#include <rviz_textured_sphere/sphere_display.h>
+#include <multi_angle_interface/sphere_display.h>
 #include <rviz/display_context.h>
 #include <rviz/ogre_helpers/shape.h>
 #include <rviz/properties/float_property.h>
@@ -203,7 +173,7 @@ void SphereDisplay::createSphere()
       scene_manager_->getRootSceneNode()->createChildSceneNode(node_name, Ogre::Vector3(0, 0, 0));
 
       float r = radius_property_->getFloat(); // Get the radius from a property or directly
-    sphere_node_->setPosition(0, 0, r);
+    sphere_node_->setPosition(0, 0, 5);
 
   Ogre::MeshPtr sphere_mesh = createSphereMesh(ROS_PACKAGE_NAME "_mesh",
                                                radius_property_->getFloat(),
@@ -214,6 +184,144 @@ void SphereDisplay::createSphere()
   sphere_entity->setMaterialName(material_name);
   sphere_node_->attachObject(sphere_entity);
 }
+
+
+//SPHERE MESH
+/*
+Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, const double r,
+                                              const unsigned int ring_cnt,
+                                              const unsigned int segment_cnt)
+{
+  Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().createManual(mesh_name, ROS_PACKAGE_NAME);
+  Ogre::SubMesh* sub_mesh = mesh->createSubMesh();
+  mesh->sharedVertexData = new Ogre::VertexData();
+  Ogre::VertexData* vertex_data = mesh->sharedVertexData;
+
+  // Define vertex format
+  Ogre::VertexDeclaration* vertex_decl = vertex_data->vertexDeclaration;
+  size_t cur_offset = 0;
+  vertex_decl->addElement(0, cur_offset, Ogre::VET_FLOAT3, Ogre::VES_POSITION);
+  cur_offset += Ogre::VertexElement::getTypeSize(Ogre::VET_FLOAT3);
+  vertex_decl->addElement(0, cur_offset, Ogre::VET_FLOAT3, Ogre::VES_NORMAL);
+  cur_offset += Ogre::VertexElement::getTypeSize(Ogre::VET_FLOAT3);
+  vertex_decl->addElement(0, cur_offset, Ogre::VET_FLOAT2, Ogre::VES_TEXTURE_COORDINATES, 0);
+  cur_offset += Ogre::VertexElement::getTypeSize(Ogre::VET_FLOAT2);
+  vertex_decl->addElement(0, cur_offset, Ogre::VET_FLOAT2, Ogre::VES_TEXTURE_COORDINATES, 1);
+  cur_offset += Ogre::VertexElement::getTypeSize(Ogre::VET_FLOAT2);
+  vertex_decl->addElement(0, cur_offset, Ogre::VET_FLOAT4, Ogre::VES_DIFFUSE);
+  cur_offset += Ogre::VertexElement::getTypeSize(Ogre::VET_FLOAT4);
+
+  // Allocate vertex buffer
+  vertex_data->vertexCount = (ring_cnt + 1) * (segment_cnt + 1);
+  Ogre::HardwareVertexBufferSharedPtr v_buf =
+      Ogre::HardwareBufferManager::getSingleton().createVertexBuffer(
+          vertex_decl->getVertexSize(0), vertex_data->vertexCount,
+          Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY, false);
+  Ogre::VertexBufferBinding* binding = vertex_data->vertexBufferBinding;
+  binding->setBinding(0, v_buf);
+  float* vertex = static_cast<float*>(v_buf->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+
+  // Allocate index buffer
+  sub_mesh->indexData->indexCount = 6 * ring_cnt * (segment_cnt + 1);
+  sub_mesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
+      Ogre::HardwareIndexBuffer::IT_16BIT, sub_mesh->indexData->indexCount,
+      Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY, false);
+  Ogre::HardwareIndexBufferSharedPtr i_buf = sub_mesh->indexData->indexBuffer;
+  unsigned short* indices =
+      static_cast<unsigned short*>(i_buf->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+
+  float delta_ring_angle = M_PI / ring_cnt;
+  float delta_segment_angle = 2 * M_PI / segment_cnt;
+  float front_lens_fov = angles::from_degrees(fov_front_property_->getFloat());
+  float rear_lens_fov = angles::from_degrees(fov_rear_property_->getFloat());
+  float blend_angle = angles::from_degrees(blend_angle_property_->getFloat());
+  unsigned short vertex_index = 0;
+
+  // For over the rings of the sphere
+  for (uint32_t ring = 0; ring <= ring_cnt; ring++)
+  {
+    float r0 = r * sinf(ring * delta_ring_angle);
+    float y0 = r * cosf(ring * delta_ring_angle);
+
+    // For over the segments of the sphere
+    for (uint32_t seg = 0; seg <= segment_cnt; seg++)
+    {
+      float x0 = r0 * sinf(seg * delta_segment_angle);
+      float z0 = r0 * cosf(seg * delta_segment_angle);
+
+      // Calculate uv coordinates
+      float v_angle = ring * delta_ring_angle;
+      float u_angle = seg * delta_segment_angle;
+      float uv_r0 = (float)ring / (float)ring_cnt * 2;
+
+      // Scale and scroll textures so that their centers will align
+      // with the top and bottom centers of the sphere
+      float scale_front = M_PI / front_lens_fov;
+      float v_front = uv_r0 * cos(u_angle) * 0.5 * scale_front + 0.5;
+      float u_front = -uv_r0 * sin(u_angle) * 0.5 * scale_front + 0.5;
+
+      float scale_rear = M_PI / rear_lens_fov;
+      float v_rear = (2 - uv_r0) * cos(u_angle) * 0.5 * scale_rear + 0.5;
+      float u_rear = (2 - uv_r0) * sin(u_angle) * 0.5 * scale_rear + 0.5;
+
+      // Use diffuse color to alpha blend front and back images at the predefined blending region
+      float blend_alpha = (v_angle - M_PI_2 + blend_angle / 2) / blend_angle;
+      blend_alpha = fmax(fmin(blend_alpha, 1.0), 0.0);  // clamp value to [0...1]
+
+      // Vertex position
+      *vertex++ = x0;
+      *vertex++ = y0;
+      *vertex++ = z0;
+
+      // Vertex normal (pointing inwards)
+      Ogre::Vector3 normal = -Ogre::Vector3(x0, y0, z0).normalisedCopy();
+      *vertex++ = normal.x;
+      *vertex++ = normal.y;
+      *vertex++ = normal.z;
+
+      // TexCoord 0 (front image)
+      *vertex++ = u_front;
+      *vertex++ = v_front;
+
+      // TexCoord 1 (rear image)
+      *vertex++ = u_rear;
+      *vertex++ = v_rear;
+
+      // Set diffuse color for alpha blending
+      *vertex++ = blend_alpha;  // r
+      *vertex++ = blend_alpha;  // g
+      *vertex++ = blend_alpha;  // b
+      *vertex++ = blend_alpha;  // a
+
+      // Add faces (normal inwards)
+      if (ring != ring_cnt)
+      {
+        *indices++ = vertex_index + segment_cnt + 1;
+        *indices++ = vertex_index + segment_cnt;
+        *indices++ = vertex_index;
+        *indices++ = vertex_index + 1;
+        *indices++ = vertex_index + segment_cnt + 1;
+        *indices++ = vertex_index;
+        vertex_index++;
+      }
+    }
+  }
+
+  // Unlock buffers
+  v_buf->unlock();
+  i_buf->unlock();
+
+  // define sphere bounds
+  sub_mesh->useSharedVertices = true;
+  mesh->_setBounds(Ogre::AxisAlignedBox(Ogre::Vector3(-r, -r, -r), Ogre::Vector3(r, r, r)), false);
+  mesh->_setBoundingSphereRadius(r);
+  mesh->load();
+
+  return mesh;
+}
+*/
+
+// HEMISPHERE MESH
 
 Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, const double r,
                                               const unsigned int ring_cnt,
@@ -265,14 +373,14 @@ Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, cons
   unsigned short vertex_index = 0;
 
   bool flatten_bottom = true;
-  float flatten_distance = 0.05;
-  float flatten_z = r * (1.0 - flatten_distance);
+  float flatten_distance = 0.15;
+  float flatten_z = r * (1.0 - flatten_distance) * 0.7;
 
   // For over the rings of the sphere
   for (uint32_t ring = 0; ring <= ring_cnt; ring++)
   {
     float r0 = r * sinf(ring * delta_ring_angle);
-    float z0 = r * cosf(ring * delta_ring_angle);
+    float z0 = r * cosf(ring * delta_ring_angle) * 0.7;
     if (flatten_bottom && z0 > flatten_z) {
         z0 = flatten_z;
       }
@@ -286,29 +394,17 @@ Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, cons
       // Calculate uv coordinates
       float v_angle = ring * delta_ring_angle;
       float u_angle = seg * delta_segment_angle;
-      float uv_r0 = (float)ring / ((float)ring_cnt / 2);
-
-
-      // Scale and scroll textures so that their centers will align
-      // // with the top and bottom centers of the sphere
-      // float scale_front = M_PI / front_lens_fov;
-      // float v_front = uv_r0 * cos(u_angle) * 0.5 * scale_front;
-      // float u_front = -uv_r0 * sin(u_angle) * 0.5 * scale_front;
-
-      // float scale_rear = M_PI / rear_lens_fov;
-      // float v_rear = (2 - uv_r0) * cos(u_angle) * 0.5 * scale_rear + 0.5;
-      // float u_rear = (2 - uv_r0) * sin(u_angle) * 0.5 * scale_rear + 0.5;
 
       // Calculate normalized angles for semicircular mapping on a 2D plane
       float theta = (float)seg / segment_cnt * M_PI; // Horizontal angle [0, PI]
       float phi = (float)ring / ring_cnt * M_PI_2; // Vertical angle [0, PI/2] from top to bottom
 
       float scale_front = M_PI / front_lens_fov;
-      float u_front = (theta / M_PI_2);
+      float u_front = 1.0 - (theta / M_PI_2);
       float v_front = (1 - (phi / M_PI_2)) * scale_front;
 
       float scale_rear = M_PI / rear_lens_fov;
-      float u_rear = (((theta - M_PI_2) / M_PI_2));
+      float u_rear = 1.0 - (((theta - M_PI_2) / M_PI_2));
       float v_rear = (1 - (phi/ M_PI_2)) * scale_rear;
 
       // Use diffuse color to alpha blend front and back images at the predefined blending region
@@ -366,6 +462,7 @@ Ogre::MeshPtr SphereDisplay::createSphereMesh(const std::string& mesh_name, cons
 
   return mesh;
 }
+
 
 void SphereDisplay::destroySphere()
 {
@@ -689,64 +786,81 @@ void SphereDisplay::reset()
 
 void SphereDisplay::publishLineStrip(const std::vector<geometry_msgs::Point>& points)
 {
-    visualization_msgs::Marker line_strip;
-    line_strip.header.frame_id = "base_link"; // Set appropriate frame ID
-    line_strip.header.stamp = ros::Time::now();
-    line_strip.ns = "line_strip";
-    line_strip.action = visualization_msgs::Marker::ADD;
-    line_strip.pose.orientation.w = 1.0;
-    line_strip.id = 0;
-    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    visualization_msgs::Marker line_strip_left, line_strip_right;
 
-    line_strip.scale.x = 0.05; // Width of the line
+    // Create markers for each wheel
+    line_strip_left.header.frame_id = line_strip_right.header.frame_id = "base_link";
+    line_strip_left.header.stamp = line_strip_right.header.stamp = ros::Time::now();
+    line_strip_left.ns = "left_wheel_trajectory";
+    line_strip_right.ns = "right_wheel_trajectory";
+    line_strip_left.action = line_strip_right.action = visualization_msgs::Marker::ADD;
+    line_strip_left.pose.orientation.w = line_strip_right.pose.orientation.w = 1.0;
+    line_strip_left.id = 0;
+    line_strip_right.id = 1;
+    line_strip_left.type = line_strip_right.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip_left.scale.x = line_strip_right.scale.x = 0.08; // Width of the line
 
-    // Set color and alpha (opacity)
-    line_strip.color.r = 1.0; // Red
-    line_strip.color.g = 0.0; // Green
-    line_strip.color.b = 0.0; // Blue
-    line_strip.color.a = 1.0; // Alpha
+    // Set colors
+    line_strip_left.color.r = 0.0; // Red
+    line_strip_left.color.g = 0.0;
+    line_strip_left.color.b = 1.0;
+    line_strip_left.color.a = 1.0; // Alpha
 
-    // Define points of the line strip
-    // for (const auto& point : points) {
-    //     line_strip.points.push_back(point);
-    // }
-    line_strip.points = points;
-    // More points can be added here
+    line_strip_right.color.r = 0.0;
+    line_strip_right.color.g = 0.0;
+    line_strip_right.color.b = 1.0; // Blue
+    line_strip_right.color.a = 1.0;
 
-    marker_pub_.publish(line_strip);
+    // Assign points to markers
+    for (size_t i = 0; i < points.size(); i += 2) {
+        line_strip_left.points.push_back(points[i]);    // Every odd index
+        line_strip_right.points.push_back(points[i+1]); // Every even index
+    }
+
+    // Publish markers
+    marker_pub_.publish(line_strip_left);
+    marker_pub_.publish(line_strip_right);
 }
 
 
-// std::vector<geometry_msgs::Point> calculateTrajectoryPoints(double steering_angle, double wheelbase, int num_points) {
-//     std::vector<geometry_msgs::Point> points;
-//     double radius = wheelbase / tan(steering_angle);
-
-//     for (int i = 0; i < num_points; ++i) {
-//         geometry_msgs::Point p;
-//         double angle = M_PI / 2 * (static_cast<double>(i) / num_points); // assuming 90 degrees turn
-//         p.x = radius * sin(angle);
-//         p.y = radius * (1 - cos(angle));
-//         p.z = 0; // Assuming flat ground
-//         points.push_back(p);
-//     }
-
-//     return points;
-// }
-
-std::vector<geometry_msgs::Point> calculateTrajectoryPoints(double steering_angle, double wheelbase, int num_points) {
+std::vector<geometry_msgs::Point> calculateTrajectoryPoints(double steering_angle, double wheelbase, double track_width, int num_points) {
     std::vector<geometry_msgs::Point> points;
     // Prevent division by zero and ensure there's a minimum curve radius
     if (std::abs(steering_angle) < 1e-4) steering_angle = 1e-4;
     double radius = wheelbase / tan(steering_angle);
     double direction = steering_angle > 0 ? 1.0 : -1.0; // 1 for right, -1 for left
 
+    double total_length = 3.0; // Set the total length of the line
+    double step_length = total_length / num_points;
+    double left_track_width = 0;
+    double right_track_width = 0;
+    if (direction == -1.0) {
+      right_track_width = track_width;
+    }
+    if (direction == 1.0) {
+      left_track_width = track_width;
+    }
+
     for (int i = 0; i <= num_points; ++i) {
-        geometry_msgs::Point p;
+        geometry_msgs::Point left_p, right_p;
+        // double path_length = step_length * i; // Calculate how far along the path this point is
+        // double angle = path_length / radius; // Calculate the angle for this point on the curve
+
         double angle = M_PI / 2 * (static_cast<double>(i) / num_points); // 90 degrees turn
-        p.x = direction * radius * sin(angle); // Adjust direction based on steering
-        p.y = radius * (1 - cos(angle));
-        p.z = 0;
-        points.push_back(p);
+        
+        // Calculate the left wheel's trajectory
+        left_p.x = direction * radius * sin(angle) + 2 - (left_track_width); // Adjust x by half track width
+        left_p.y = radius * (1 - cos(angle)) + 1;
+        left_p.z = 0;
+        
+        // Calculate the right wheel's trajectory
+        right_p.x = direction * radius * sin(angle) + 2 - (right_track_width); // Adjust x by half track width
+        right_p.y = radius * (1 - cos(angle)) - 1;
+        right_p.z = 0;
+
+        // Add points to the list
+        points.push_back(left_p);   // Add left wheel point
+        points.push_back(right_p);  // Add right wheel point
     }
 
     return points;
@@ -755,20 +869,18 @@ std::vector<geometry_msgs::Point> calculateTrajectoryPoints(double steering_angl
 
 void SphereDisplay::steeringAngleCallback(const sensor_msgs::Joy::ConstPtr& joy_msg) {
     double steering_value = joy_msg->axes[0];
-    double max_steering_angle_deg = 30.0;
+    double max_steering_angle_deg = 60.0;
     double steering_angle_rad = steering_value * (max_steering_angle_deg * M_PI / 180.0);
 
-    double wheelbase = 2.74; // Adjust as per your vehicle's specification
+    double wheelbase = 2.74;
+    double wheelTrack = 1.5; // Adjust as per your vehicle's specification
     int num_points = 100; // Adjust based on required granularity
 
-    std::vector<geometry_msgs::Point> points = calculateTrajectoryPoints(steering_angle_rad, wheelbase, num_points);
+    std::vector<geometry_msgs::Point> points = calculateTrajectoryPoints(steering_angle_rad, wheelbase, wheelTrack, num_points);
     publishLineStrip(points);
 }
 
 // ros::Subscriber sub_joy = nh.subscribe<sensor_msgs::Joy>("joy", 10, steeringAngleCallback);
-
-
-
 
 }  // namespace rviz
 

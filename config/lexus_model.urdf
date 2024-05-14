@@ -14,14 +14,14 @@
       <visual name="Body">
         <origin xyz="0 0.0 0.0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://rviz_textured_sphere/config/lexus_meshes/dae/Exterior.dae" scale="1.0 1.02346 1.041"/>
+          <mesh filename="package://multi_angle_interface/config/lexus_meshes/dae/Exterior.dae" scale="1.0 1.02346 1.041"/>
         </geometry>
         <material name="Lexus2016RXInterior"/>
       </visual>
     </link>
 
     <joint name="link_BaseLink" type="fixed">
-      <origin xyz="-0.05 0 -0.60" rpy="0 0 1.5708"/>
+      <origin xyz="-0.05 0 -1.80" rpy="0 0 1.5708"/>
       <parent link="base_link"/>
       <child link="lexus_model"/>
     </joint>
