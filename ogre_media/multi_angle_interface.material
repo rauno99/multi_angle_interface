@@ -1,4 +1,4 @@
-material rviz_textured_sphere_material
+material multi_angle_interface_material
 {
 	technique
 	{

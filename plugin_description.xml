@@ -1,4 +1,4 @@
-<library path="lib/librviz_textured_sphere">
+<library path="lib/libmulti_angle_interface">
   <class name="multi_angle_interface/SphereDisplay"
          type="rviz::SphereDisplay"
          base_class_type="rviz::Display">
@@ -6,7 +6,7 @@
       This display plugin creates a sphere with dynamic texture.
     </description>
   </class>
-    <class path="lib/librviz_textured_sphere"
+    <class path="lib/libmulti_angle_interface"
           name="multi_angle_interface/ViewPanel"
           type="rviz::ViewPanel"
           base_class_type="rviz::Panel">

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find jsk_perception)/sample/sample_dual_fisheye_to_panorama.launch">
+        <arg name="INPUT_IMAGE" value="/dual_fisheye_image"/>
+        <arg name="fovd" value="235"/>
+        <arg name="resolution_mode" value="high"/>
+    </include>
+    <node name="merge_dual_fisheye" pkg="multi_angle_interface" type="merge_dual_fisheye.py"/>
+    <node name="image_splitter" pkg="multi_angle_interface" type="image_splitter.py"/>
+</launch>
