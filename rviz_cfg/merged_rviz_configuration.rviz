@@ -26,7 +26,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
   - Class: multi_angle_interface/ViewPanel
     Name: ViewPanel
 Preferences:
@@ -150,7 +150,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: visualization_marker
+      Marker Topic: /vehicle_trajectory
       Name: Marker
       Namespaces:
         {}

@@ -142,7 +142,7 @@ void SphereDisplay::onInitialize()
   createSphere();
   scanForTransportSubscriberPlugins();
 
-  marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 100);
+  marker_pub_ = nh_.advertise<visualization_msgs::Marker>("vehicle_trajectory", 100);
   sub_joy_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &SphereDisplay::steeringAngleCallback, this);
 
 }
@@ -869,7 +869,7 @@ std::vector<geometry_msgs::Point> calculateTrajectoryPoints(double steering_angl
 
 void SphereDisplay::steeringAngleCallback(const sensor_msgs::Joy::ConstPtr& joy_msg) {
     double steering_value = joy_msg->axes[0];
-    double max_steering_angle_deg = 60.0;
+    double max_steering_angle_deg = 30.0;
     double steering_angle_rad = steering_value * (max_steering_angle_deg * M_PI / 180.0);
 
     double wheelbase = 2.74;

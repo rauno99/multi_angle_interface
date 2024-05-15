@@ -7,4 +7,5 @@
     </include>
     <node name="merge_dual_fisheye" pkg="multi_angle_interface" type="merge_dual_fisheye.py"/>
     <node name="image_splitter" pkg="multi_angle_interface" type="image_splitter.py"/>
+    <include file="$(find multi_angle_interface)/launch/dual_usb_fisheyes.launch"></include>
 </launch>
